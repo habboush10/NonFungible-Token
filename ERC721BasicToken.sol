@@ -30,9 +30,17 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
 
   // Mapping from owner to operator approvals
   mapping (address => mapping (address => bool)) internal operatorApprovals;
+  
+  mapping(address => uint) private balances;
+  
+  mapping(uint256 => bool) private tokenExists;
+
+  
+  
+
 
   constructor()
-    public
+    public payable
   {
     // register the supported interfaces to conform to ERC721 via ERC165
     _registerInterface(InterfaceId_ERC721);
@@ -47,7 +55,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
    // number 1
   function balanceOf(address _owner) public view returns (uint256) {
     // YOUR CODE HERE
-
+    return balances[_owner];
   }
 
   /**
@@ -59,7 +67,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     //hint: the owner should be exist to return its address
   function ownerOf(uint256 _tokenId) public view returns (address) {
     // YOUR CODE HERE
-
+    return tokenOwner[_tokenId];
   }
 
   /**
@@ -70,7 +78,7 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 3
   function exists(uint256 _tokenId) public view returns (bool) {
     // YOUR CODE HERE
-
+    return tokenExists[_tokenId];
   }
     /**
    * @dev Tells whether an operator is approved by a given owner
@@ -87,8 +95,9 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     view
     returns (bool)
   {
-    // YOUR CODE HERE
-
+    require(_owner != address(0));
+    require(_operator != address(0));
+    return operatorApprovals[_owner][_operator];
   }
 
 
@@ -104,7 +113,12 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // hint: the approver should be the owner or should be approved for all tokens that owned by the owner
   function approve(address _to, uint256 _tokenId) public {
     // YOUR CODE HERE
-
+    address tokenOwnerId = tokenOwner[_tokenId];
+    
+    require(_to != tokenOwnerId);
+    
+    tokenApprovals[_tokenId] = _to;
+    
   }
 
   /**
@@ -115,7 +129,10 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 6
   function getApproved(uint256 _tokenId) public view returns (address) {
     // YOUR CODE HERE
-
+    
+    require(tokenOwner[_tokenId] != address(0));
+    
+    return tokenApprovals[_tokenId];
   }
 
   /**
@@ -127,7 +144,13 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 7
   function setApprovalForAll(address _to, bool _approved) public {
     // YOUR CODE HERE
-
+    
+    require(_to != address(0));
+    
+    operatorApprovals[msg.sender][_to] = _approved;
+    
+    //emit approvedForAll(msg.sender, _to, _approved);
+    
   }
 
   /**
@@ -146,7 +169,9 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     view
     returns (bool)
   {
-    // YOUR CODE HERE
+    address owner = ownerOf(_tokenId);
+    
+    return (_spender == owner || getApproved(_tokenId) == _spender || isApprovedForAll(owner, _spender));
 
   }
   /**
@@ -158,7 +183,11 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 9
   function clearApproval(address _owner, uint256 _tokenId) internal {
     // YOUR CODE HERE
-
+    require(ownerOf(_tokenId) == _owner);
+    
+    if(tokenApprovals[_tokenId] != address(0)){
+        tokenApprovals[_tokenId] = address(0);
+    }
   }
 
   /**
@@ -169,7 +198,10 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 10
   function removeTokenFrom(address _from, uint256 _tokenId) internal {
     // YOUR CODE HERE
-
+    require(ownerOf(_tokenId) == _from);
+    
+    ownedTokensCount[_from] = ownedTokensCount[_from].sub(1);
+    tokenOwner[_tokenId] = address(0);
   }
 
   /**
@@ -180,6 +212,12 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
     // number 11
   function addTokenTo(address _to, uint256 _tokenId) internal {
     // YOUR CODE HERE
+    
+    require(ownerOf(_tokenId) == address(0));
+    
+    tokenOwner[_tokenId] = _to;
+    
+    ownedTokensCount[_to] = ownedTokensCount[_to].add(1);
 
   }
 
@@ -199,8 +237,15 @@ contract ERC721BasicToken is SupportsInterfaceWithLookup, ERC721Basic {
   )
     public
   {
-    // YOUR CODE HERE
-
+       // YOUR CODE HERE
+      require(_from != address(0));
+      require(_to != address(0));
+      
+      clearApproval(_from, _tokenId);
+      
+      removeTokenFrom(_from, _tokenId);
+      
+      addTokenTo(_to, _tokenId);
   }
 
   /**
